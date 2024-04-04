@@ -1,4 +1,4 @@
-async function genreList(req: Request): Promise<Response> {
+async function genreList(): Promise<Response> {
   const resp = await fetch("https://api.themoviedb.org/3/genre/tv/list", {
     // The init object here has an headers object containing a
     // header that indicates what type of response we accept.
