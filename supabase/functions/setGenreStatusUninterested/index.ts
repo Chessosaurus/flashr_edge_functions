@@ -10,13 +10,13 @@ Deno.serve(async (req) => {
   const {user_id, genre_id} = await req.json()
   let resp
 
-  const { data: existingData, error: existingError } = await supabase
+  const { data: existingData, error: _existingError } = await supabase
   .from("GenreStatus")
   .select("status")
   .eq("user_id", user_id)
   .eq("genre_id", genre_id);
 
-  if (existingData === undefined){
+  if (existingData?.length === 0){
     const { data, error } = await supabase
     .from("GenreStatus")
     .insert([{ user_id: user_id, genre_id: genre_id, status: 0 }])

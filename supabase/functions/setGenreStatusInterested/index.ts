@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   .eq("user_id", user_id)
   .eq("genre_id", genre_id);
 
-  if (existingData === undefined){
+  if (existingData?.length === 0){
 
     const { data, error } = await supabase
     .from("GenreStatus")
