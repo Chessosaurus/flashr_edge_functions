@@ -21,14 +21,23 @@ Deno.serve(async (req) => {
   
   if(resp.error === null)
   {
+    const responeBody = {
+      message: 'Request has been successful!',
+      resp
+    }
     return new Response(
-      JSON.stringify( 'Request has been successful', resp),
+      
+      JSON.stringify(responeBody),
       { status: 200, headers: { "Content-Type": "application/json" } },
     )
   }
 
+  const responeBody = {
+    message: 'Request has failed!',
+    resp
+  }
   return new Response(
-    JSON.stringify( 'Request has failed', resp ),
+    JSON.stringify( responeBody ),
     { status: 400, headers: { "Content-Type": "application/json" } },
   )
 })

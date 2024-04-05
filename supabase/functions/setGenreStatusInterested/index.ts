@@ -17,31 +17,45 @@ Deno.serve(async (req) => {
   .eq("genre_id", genre_id);
 
   if (existingData === undefined){
+
     const { data, error } = await supabase
     .from("GenreStatus")
     .insert([{ user_id: user_id, genre_id: genre_id, status: 1 }])
     .select()
     resp = {data: data,error}
+
   }
   else{
     const { data, error } = await supabase
-      .from("GenreStatus")
-      .update([{ status: 1 }])
-      .eq("user_id", user_id)
-      .eq("genre_id", genre_id);
-      resp = {data: data,error}
+    .from("GenreStatus")
+    .update([{ status: 1 }])
+    .eq("user_id", user_id)
+    .eq("genre_id", genre_id);
+    resp = {data: data,error}
   }
+
+
+
 
   if(resp.error === null)
   {
+    const responeBody = {
+      message: 'Request has been successful!',
+      resp
+    }
     return new Response(
-      JSON.stringify( 'Request has been successful', resp),
+      
+      JSON.stringify(responeBody),
       { status: 200, headers: { "Content-Type": "application/json" } },
     )
   }
 
+  const responeBody = {
+    message: 'Request has failed!',
+    resp
+  }
   return new Response(
-    JSON.stringify( 'Request has failed', resp ),
+    JSON.stringify( responeBody ),
     { status: 400, headers: { "Content-Type": "application/json" } },
   )
   
