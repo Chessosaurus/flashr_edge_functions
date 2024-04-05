@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   const {user_id, genre_id} = await req.json()
   let resp
 
-  const { data: existingData, error: existingError } = await supabase
+  const { data: existingData, error: _existingError } = await supabase
   .from("GenreStatus")
   .select("status")
   .eq("user_id", user_id)
