@@ -8,16 +8,30 @@ const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 Deno.serve(async (req) => {
 
   const {user_id, genre_id} = await req.json()
+  let resp
 
-  const { data, error } = await supabase
+  const { data: existingData, error: existingError } = await supabase
   .from("GenreStatus")
-  .insert([
-    { user_id: user_id, genre_id: genre_id, status: 1 },
-  ])
-  .select()
+  .select("status")
+  .eq("user_id", user_id)
+  .eq("genre_id", genre_id);
 
-  const resp = {data: data,error}
-  
+  if (existingData === undefined){
+    const { data, error } = await supabase
+    .from("GenreStatus")
+    .insert([{ user_id: user_id, genre_id: genre_id, status: 1 }])
+    .select()
+    resp = {data: data,error}
+  }
+  else{
+    const { data, error } = await supabase
+      .from("GenreStatus")
+      .update([{ status: 1 }])
+      .eq("user_id", user_id)
+      .eq("genre_id", genre_id);
+      resp = {data: data,error}
+  }
+
   return new Response(
     JSON.stringify( resp ),
     { headers: { "Content-Type": "application/json" } },
