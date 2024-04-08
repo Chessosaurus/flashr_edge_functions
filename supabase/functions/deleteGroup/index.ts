@@ -27,12 +27,12 @@ Deno.serve(async (req) => {
 
     if(!UserInGroupDeleted) {
 
-      const responeBody = {
+      resp = {
         message: 'Something went wrong deleting the relation between group and user!',
       }
 
       return new Response(
-        JSON.stringify( responeBody ),
+        JSON.stringify( resp ),
         { status: 400, headers: { "Content-Type": "application/json" } },
       )
     }
@@ -42,28 +42,24 @@ Deno.serve(async (req) => {
 
     if(!groupDeleted) {
 
-      const responeBody = {
+      resp = {
         message: 'Something went wrong deleting the group!',
       }
 
       return new Response(
-        JSON.stringify( responeBody ),
+        JSON.stringify( resp ),
         { status: 400, headers: { "Content-Type": "application/json" } },
       )
     }
 
+    resp = {
+      message: 'Group deleted successfully!'
+    }
+
   }
 
-
-
-
- 
-
-  const responeBody = {
-    message: 'Group deleted successfully!',
-  }
   return new Response(
-    JSON.stringify( responeBody ),
+    JSON.stringify( resp ),
     { status: 400, headers: { "Content-Type": "application/json" } },
   )
   
