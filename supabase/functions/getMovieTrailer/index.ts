@@ -1,4 +1,4 @@
-async function genreList(req: Request): Promise<Response> {
+async function getMovieTrailer(req: Request): Promise<Response> {
 
   const { tmdb_id } = await req.json()
 
@@ -16,4 +16,4 @@ async function genreList(req: Request): Promise<Response> {
 }
 
 
-Deno.serve(genreList);
+Deno.serve(getMovieTrailer);
