@@ -18,7 +18,11 @@ Deno.serve(async (req) => {
 
   if (existingData?.length === 0){
 
-    resp = {message:"gruppe nicht gefunden"}
+    resp = {message:"Gruppe nicht gefunden"}
+    return new Response(
+      JSON.stringify( resp ),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    )
 
   }
   else{
