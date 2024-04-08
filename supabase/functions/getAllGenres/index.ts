@@ -1,4 +1,4 @@
-async function genreList(): Promise<Response> {
+async function getAllGenres(): Promise<Response> {
   const resp = await fetch("https://api.themoviedb.org/3/genre/tv/list", {
     headers: {
       Accept: 'application/json',
@@ -14,4 +14,4 @@ async function genreList(): Promise<Response> {
   });
 }
 
-Deno.serve(genreList);
+Deno.serve(getAllGenres);
