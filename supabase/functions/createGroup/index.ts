@@ -7,7 +7,9 @@ const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 Deno.serve(async (req) => {
 
-  const {user_id, group_name, icon} = await req.json()
+  const {user_id, group_name} = await req.json()
+
+
   let resp
 
   const { data: existingData, error: _existingError } = await supabase
