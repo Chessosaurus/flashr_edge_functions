@@ -7,33 +7,18 @@ const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 Deno.serve(async (req) => {
 
-  const {user_id, group_name} = await req.json()
+  const body = await req.json();
 
+  const {user_id, group_id} = body;
 
-  let resp
-
-  const { data: existingData, error: _existingError } = await supabase
-  .from("Group")
-  .select("id")
-  .eq("creator_Id", user_id)
-  .eq("name", group_name);
-
-  if (existingData?.length === 0){
-
-    const { data, error } = await supabase
-    .from("Group")
-    .insert([{ creator_Id: user_id, name: group_name}])
-    .select()
-    resp = {data: data,error}
-
-  }
-  else{
-    resp = {info: "Group already exists!"}
-  }
-
-
-
-
+  const { error } = await supabase
+  .from('UserInGroup')
+  .delete()
+  .eq('user_Id', user_id)
+  .eq('group_Id', group_id)
+        
+  const resp = {error}
+  
   if(resp.error === null)
   {
     const responeBody = {
