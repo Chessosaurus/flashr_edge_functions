@@ -12,21 +12,13 @@ Deno.serve(async (req) => {
 
   const { data: existingData, error: _existingError } = await supabase
   .from("Group")
-  .select("creator_id")
+  .select("name")
   .eq("creator_Id", user_id)
-  .eq("group_Id", group_id);
+  .eq("id", group_id);
 
-  if (existingData?.length === 0){
+  
+  if (existingData && existingData[0].name.length > 0) { 
 
-    resp = {message:"Gruppe nicht gefunden"}
-    return new Response(
-      JSON.stringify( resp ),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    )
-
-  }
-  else{
-    
     const UserInGroupDeleted = await deleteUserInGroupRecords(group_id)
 
     if(!UserInGroupDeleted) {
@@ -40,33 +32,40 @@ Deno.serve(async (req) => {
         { status: 400, headers: { "Content-Type": "application/json" } },
       )
     }
+    else {
+      const groupDeleted = await deleteGroupRecords(group_id)
 
-
-    const groupDeleted = await deleteGroupRecords(group_id)
-
-    if(!groupDeleted) {
-
-      resp = {
-        message: 'Something went wrong deleting the group!',
-      }
-
-      return new Response(
-        JSON.stringify( resp ),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      )
+      if(!groupDeleted) {
+  
+        resp = {
+          message: 'Something went wrong deleting the group!',
+        }
+  
+        return new Response(
+          JSON.stringify( resp ),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        )
+      } 
     }
 
     resp = {
-      message: 'Group deleted successfully!'
+      message: 'Group deleted successfully!',
     }
 
-  }
+    return new Response(
+      JSON.stringify( resp ),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    )
 
-  return new Response(
-    JSON.stringify( resp ),
-    { status: 400, headers: { "Content-Type": "application/json" } },
-  )
-  
+
+  }
+  else {
+    resp = {message:"Gruppe nicht gefunden"}
+    return new Response(
+      JSON.stringify( resp ),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    )
+  }  
 })
 
 
