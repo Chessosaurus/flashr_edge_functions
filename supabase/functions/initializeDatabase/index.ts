@@ -1,25 +1,24 @@
-console.log("Hello from Functions!")
+async function initDB() {
+  console.log("Hello from Functions!")
+  //Ablauf: Die gz Datei von tmdb runterladen
+  const date = "04_16_2024";
+  
+  fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz", {
+    headers:{ Authorization: 'Bearer {' + token + '}' }
+  }).then(response => console.log(response.status))
+    .catch(error => console.error(error))
+}
+initDB();
+//gz in json extrahieren
 
-//Ablauf: Die gz Datei von tmdb runterladen
 //Für alle Einträge in der Datei schauen, on in Lokaler DB vorhanden
 //Wenn nicht die Details/credits anfragen
-//Die Ergebnisse in die entsprechenden Tabellen eifügen
+//Die Ergebnisse in diüöe entsprechenden Tabellen eifügen
 //MovieActor/MovieGenre und wenn Actor oder Genre noch nicht in den Tabellen vorhanden sind diese ergänzen
 
 //Den Endpoint, der hier defieniert ist
-//https://developer.themoviedb.org/reference/changes-movie-list
 //jeden Tag anfordern und alle Änderungen daraus erneut anfragen
 
-/*Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
-  } 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})*/
 
 /* To invoke locally:
 
