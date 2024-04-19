@@ -7,7 +7,7 @@ async function getMovieTrailer(req: Request): Promise<Response> {
       Accept: 'application/json',
     },
   });
-  return new Response(resp.body, {
+  return new Response(null, {
     status: resp.status,
     headers: {
       "content-type": "application/json",
