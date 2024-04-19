@@ -11,6 +11,7 @@ const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } })
 
 async function initDB(req: Request): Promise<Response> {
   const date = "04_16_2024";
+  let countMoviesAdded = 0;
   //Die aktuellse Movie.json.gz von tmdb downloaden
   const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
   //Die .gz entpacken und die einzelnen Einträge jeweils als String abspeichern
@@ -20,21 +21,21 @@ async function initDB(req: Request): Promise<Response> {
   const DataArray = decompressed.toString().split('\n');
 
   //Für alle FilmId's checken ob vorhanden, falls nicht hinzufügen und Verbindungen erstellen
-  for (let i = 0; i < 1; i++) {//
+  for (let i = 0; i < 1000; i++) {//
     try {
       const jsonObject = JSON.parse(DataArray[i]);
       const idValue: number = jsonObject.id;
-      console.log(idValue)
       //Check if Movie is in DB, else add it
       if(! await movieInDB(idValue)){
         getMovieData(idValue).then(mergeMovieIntoDB)
+        countMoviesAdded++
       }
     } catch (error) {
       console.log(`Line ${i} had the error:\n${error}`)
     }
   }
 
-  return new Response(null, {
+  return new Response(`Movies added to the Database:${countMoviesAdded}`, {
     status: 200,
     headers: {
       "content-type": "application/json",
@@ -47,20 +48,30 @@ async function mergeMovieIntoDB(credits: MovieData) {
   //MERGE ALL ACTORs INTO Actor
   const actorsAdded = await upsertActors(actors);
   if(!actorsAdded){
-    throw new Error("An error has occured while adding the Actors")
+    rollbackForMovieId(credits.id)
+    throw new Error(`An error has occured while adding the Actors for MovieId `+ credits.id)
   }
   //INSERT ALL MOVIEs AND ACTORs INTO MovieActor
   const movieActorsAdded = await addMovieActors(credits.id, actors)
   if(!movieActorsAdded){
-    throw new Error("An error has occured while adding the MovieActors")
+    rollbackForMovieId(credits.id)
+    throw new Error(`An error has occured while adding the MovieActors for MovieId `+ credits.id)
   }
   //INSERT MOVIE AND ALL GENREs INTO MovieGenre
   const movieGenreAdded = await addMovieGenre(credits);
   if(!movieGenreAdded){
-    throw new Error("An error has occured while adding the MovieGenres")
+    rollbackForMovieId(credits.id)
+    throw new Error(`An error has occured while adding the MovieGenres for MovieId `+ credits.id)
   }
 }
-//returns true, if the repsonse contains all Genres
+//Deletes Movie from the DB and cascades its relations
+async function rollbackForMovieId(movieId : number){
+  const {data,error} = await supabase
+    .from("Movie")
+    .delete()
+    .eq("id",movieId)
+}
+//returns true, if no error occured
 async function addMovieGenre(movieData : MovieData): Promise<boolean>{
   interface MovieGenre{
     movie_id : number
@@ -70,13 +81,15 @@ async function addMovieGenre(movieData : MovieData): Promise<boolean>{
   movieData.genres.forEach(g=>{
     mGenre.push({movie_id : movieData.id,genre_id : g.id})
   })
-  const { data} = await supabase
+  const {data,error} = await supabase
     .from("MovieGenre")
     .upsert(mGenre)
-    .select();
-  return data?.length == movieData.genres.length
+    .select("movie_id, genre_id");
+    if(error === null) return true;
+    console.log(error)
+    return false;
 }
-//returns true, if the response contains all MovieActors
+//returns true, if no error occured
 async function addMovieActors(movieId : number, actors : Actor[]) : Promise<boolean>{
   interface MovieActor{
     movie_id : number
@@ -86,28 +99,31 @@ async function addMovieActors(movieId : number, actors : Actor[]) : Promise<bool
   actors.forEach(a=>{
     mActors.push({movie_id : movieId, actor_id : a.id})
   })
-  const { data} = await supabase
+  const {data,error} = await supabase
     .from("MovieActor")
     .upsert(mActors)
-    .select();
-  return data?.length == actors.length
+    .select("movie_id, actor_id");
+    if(error === null) return true;
+    console.log(error)
+    return false;
 }
-//Returns true if the response contains all Actors
+//Returns true if no error occured
 async function upsertActors(actors: Actor[]): Promise<boolean>{
-  const { data} = await supabase
+  const { data,error} = await supabase
     .from("Actor")
     .upsert(actors)
     .select("id");
-
-  return data?.length == actors.length
+  if(error === null) return true;
+  console.log(error)
+  return false;
 }
 //Checks if the movie is in the Database, else adds it to it
 //True if already in DB, false if not
 async function movieInDB(movieId: number): Promise<boolean> {
-  const {status } = await supabase
+  const {data,error,status } = await supabase
     .from("Movie")
     .upsert({ id: movieId })
-    .select();
+    .select("id");
   
   //If Movie was created the status is 201, if it was already in the db it is 200
   return status == 200;
@@ -116,7 +132,10 @@ function getActorsFromMovieData(movieData: MovieData): Actor[] {
   const actors: Actor[] = []
   movieData.cast.forEach(c => {
     if (c.known_for_department == "Acting") {
-      actors.push({ id: c.id })
+      //Check, so that no duplicates may be in the actors list
+      if(!actors.includes({id : c.id})){
+        actors.push({ id: c.id })
+      }
     }
   })
   return actors;
@@ -143,5 +162,9 @@ interface MovieData {
 }
 interface Actor {
   id: number
+}
+
+function logActors(actors : Actor[]){
+  actors.forEach(a=>console.log(a.id))
 }
 Deno.serve(initDB);
