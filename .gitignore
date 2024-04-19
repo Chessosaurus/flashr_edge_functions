@@ -1,0 +1,10 @@
+.branches
+.temp
+.idea
+.env
+.resources
+config.ts
+.vscode
+*.js
+*.json
+*.gz
