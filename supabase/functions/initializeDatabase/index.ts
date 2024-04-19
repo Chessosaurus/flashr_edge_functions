@@ -66,11 +66,11 @@ async function addMovieGenre(movieData : MovieData): Promise<boolean>{
     movie_id : number
     genre_id : number
   }
-  let mGenre : MovieGenre[] = []
+  const mGenre : MovieGenre[] = []
   movieData.genres.forEach(g=>{
     mGenre.push({movie_id : movieData.id,genre_id : g.id})
   })
-  const { data, error, status } = await supabase
+  const { data} = await supabase
     .from("MovieGenre")
     .upsert(mGenre)
     .select();
@@ -82,11 +82,11 @@ async function addMovieActors(movieId : number, actors : Actor[]) : Promise<bool
     movie_id : number
     actor_id : number
   }
-  let mActors : MovieActor[] = []
+  const mActors : MovieActor[] = []
   actors.forEach(a=>{
     mActors.push({movie_id : movieId, actor_id : a.id})
   })
-  const { data, error, status } = await supabase
+  const { data} = await supabase
     .from("MovieActor")
     .upsert(mActors)
     .select();
@@ -94,7 +94,7 @@ async function addMovieActors(movieId : number, actors : Actor[]) : Promise<bool
 }
 //Returns true if the response contains all Actors
 async function upsertActors(actors: Actor[]): Promise<boolean>{
-  const { data, error, status } = await supabase
+  const { data} = await supabase
     .from("Actor")
     .upsert(actors)
     .select("id");
@@ -104,7 +104,7 @@ async function upsertActors(actors: Actor[]): Promise<boolean>{
 //Checks if the movie is in the Database, else adds it to it
 //True if already in DB, false if not
 async function movieInDB(movieId: number): Promise<boolean> {
-  const { data, error, status } = await supabase
+  const {status } = await supabase
     .from("Movie")
     .upsert({ id: movieId })
     .select();
@@ -113,7 +113,7 @@ async function movieInDB(movieId: number): Promise<boolean> {
   return status == 200;
 }
 function getActorsFromMovieData(movieData: MovieData): Actor[] {
-  let actors: Actor[] = []
+  const actors: Actor[] = []
   movieData.cast.forEach(c => {
     if (c.known_for_department == "Acting") {
       actors.push({ id: c.id })
