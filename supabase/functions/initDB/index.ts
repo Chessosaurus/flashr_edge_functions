@@ -6,13 +6,16 @@ const tmdbKey = env["_TMDB_API_KEY"];
 const supUrl = env["_SUPABASE_URL"];
 const supKey = env["_SUPABASE_API_KEY"];
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
-const maxNumberOfMoviesToAdd = 10_000
+const maxNumberOfMoviesToAdd = 1500
 let batch = 0
 let addedMovies = 0
 const batchSize = 150;
 
 async function initDB(req: Request): Promise<Response> {
+  addedMovies = 0;
+  batch = 0;
   const begin : Date = new Date()
+  let last : Date = new Date();
   const date = "04_16_2024";
   //Die aktuellse Movie.json.gz von tmdb downloaden
   const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
@@ -21,8 +24,6 @@ async function initDB(req: Request): Promise<Response> {
   const gzippedData = new Uint8Array(buffer);
   const decompressed = zlib.gunzipSync(gzippedData);
   const dataArray = decompressed.toString().split('\n');
-
-
   while (maxNumberOfMoviesToAdd > addedMovies) {
     //Gets batchSize elements of MovieData
     const toProcess: MovieData[] = await getBatchSizeOfUnknownMovieDataFromDataArray(dataArray, Math.min(batchSize,(maxNumberOfMoviesToAdd-addedMovies)));
@@ -50,14 +51,16 @@ async function initDB(req: Request): Promise<Response> {
     //Logs the batch and how many movies were added
     addedMovies += movies.size()
     batch++
-    console.log(`Batch Nr:${batch}\tMovies Added:${movies.size()}`)
+    console.log(`Batch Nr:${batch}\tMovies Added:${movies.size()}\tTime for batch:${new Date().getTime()-last.getTime()}ms\tTotal time:${new Date().getTime()-begin.getTime()}ms`)
+    last = new Date();
     movies.clear()
     actors.clear()
     movieActors.clear()
     movieGenres.clear()
   }
   const end : Date = new Date()
-  return new Response(`${addedMovies} were added in ${batch} Batches. It took ${end.getTime()-begin.getTime()}ms`, {
+  return new Response(`${addedMovies} were added in ${batch} Batches. It took ${end.getTime()-begin.getTime()}ms\n
+  This results in ${(end.getTime()-begin.getTime())/addedMovies}'ms/movie'`, {
     status: 200,
     headers: {
       "content-type": "application/json",
