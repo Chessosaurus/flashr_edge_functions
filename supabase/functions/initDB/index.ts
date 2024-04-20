@@ -1,46 +1,96 @@
 import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0"
+import k from "https://esm.sh/v135/utf-8-validate@6.0.3/denonext/utf-8-validate.mjs";
 import * as zlib from 'node:zlib';
 const env = await load();
 const tmdbKey = env["_TMDB_API_KEY"];
 const supUrl = env["_SUPABASE_URL"];
 const supKey = env["_SUPABASE_API_KEY"];
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
-const maxNumberOfMoviesToAdd = 1500
+const maxNumberOfMoviesToAdd = 1000
 let batch = 0
 let addedMovies = 0
-const batchSize = 50;
+const batchSize = 100;
+
+class UniqueSet<T extends Object> {
+  private items: Map<string, T>;
+
+  constructor() {
+    this.items = new Map<string, T>();
+  }
+
+  add(item: T): void {
+    // Assuming T has an 'id' property of type number
+    const keys = Object.keys(item)
+    let key: string = "";
+    //console.log(item[keys[1] as keyof typeof item])
+    key += item[keys[0] as keyof typeof item]
+    for (let k = 1; k < keys.length; k++) {
+      key += `_${item[keys[k] as keyof typeof item]}`
+    }
+    if (!this.hasKey(key)) {
+      this.items.set(key, item)
+    }
+  }
+  addAll(item: T[]) {
+    item.forEach(i => {
+      this.add(i)
+    })
+  }
+
+  toArray(): T[] {
+    return Array.from(this.items.values());
+  }
+  size(): number {
+    return this.items.size;
+  }
+  clear(): void {
+    this.items.clear
+  }
+  hasKey(key: string): boolean {
+    return this.items.has(key)
+  }
+}
+//Die aktuellse Movie.json.gz von tmdb downloaden
+const date = "04_16_2024";
+const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
+//Die .gz entpacken und die einzelnen Einträge jeweils als String abspeichern
+const buffer = await response.arrayBuffer();
+const gzippedData = new Uint8Array(buffer);
+const decompressed = zlib.gunzipSync(gzippedData);
+const dataArray = decompressed.toString().split('\n');
+
 
 async function initDB(req: Request): Promise<Response> {
   addedMovies = 0;
   batch = 0;
-  const begin : Date = new Date()
-  let last : Date = new Date();
-  const date = "04_16_2024";
-  //Die aktuellse Movie.json.gz von tmdb downloaden
-  const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
-  //Die .gz entpacken und die einzelnen Einträge jeweils als String abspeichern
-  const buffer = await response.arrayBuffer();
-  const gzippedData = new Uint8Array(buffer);
-  const decompressed = zlib.gunzipSync(gzippedData);
-  const dataArray = decompressed.toString().split('\n');
+  const begin: Date = new Date()
+  let last: Date = new Date();
+
+  const moviesInDBLocal: UniqueSet<Movie> = new UniqueSet();
+
+  await getMoviesInDb().then(mL => {
+    moviesInDBLocal.addAll(mL)
+  })
+
   while (maxNumberOfMoviesToAdd > addedMovies) {
     //Gets batchSize elements of MovieData
-    const toProcess: MovieData[] = await getBatchSizeOfUnknownMovieDataFromDataArray(dataArray, Math.min(batchSize,(maxNumberOfMoviesToAdd-addedMovies)));
-    const movies: UniqueSet<Movie> = new UniqueSet<Movie>();
-    const actors: UniqueSet<Actor> = new UniqueSet<Actor>();
-    const movieActors: UniqueSet<MovieActor> = new UniqueSet<MovieActor>();
-    const movieGenres: UniqueSet<MovieGenre> = new UniqueSet<MovieGenre>();
+    const toProcess: MovieData[] = await getBatchSizeOfUnknownMovieDataFromDataArray(dataArray, Math.min(batchSize, (maxNumberOfMoviesToAdd - addedMovies)), moviesInDBLocal);
+    const movies: UniqueSet<Movie> = new UniqueSet();
+    const actors: UniqueSet<Actor> = new UniqueSet();
+    const movieActors: UniqueSet<MovieActor> = new UniqueSet();
+    const movieGenres: UniqueSet<MovieGenre> = new UniqueSet();
     //Fill the Sets with Data
     while (toProcess.length > 0) {
       const data: MovieData = toProcess.pop()!;
       movies.add({ id: data.id })
+      moviesInDBLocal.add({ id: data.id })
       getActorsFromMovieData(data).forEach(actor => {
-        actors.add({ id: actor.id })
-        movieActors.add({ movie_id: data.id, actor_id: actor.id })
+        actors.add(actor)
+        movieActors.add({ movie_id: data.id, actor_id: actor.id } as MovieActor)
       })
       getGenresFromMovieData(data).forEach(genre => {
-        movieGenres.add({ movie_id: data.id, genre_id: genre.id })
+        movieGenres.add({ movie_id: data.id, genre_id: genre.id } as MovieGenre)
       })
     }
     //Add all the Data into the Database
@@ -48,35 +98,38 @@ async function initDB(req: Request): Promise<Response> {
     await addActorsToDB(actors.toArray())
     await addMovieActorsToDB(movieActors.toArray())
     await addMovieGenresToDB(movieGenres.toArray())
+    //Add Movies to moviesInDB
     //Logs the batch and how many movies were added
     addedMovies += movies.size()
     batch++
-    console.log(`Batch Nr:${batch}\tMovies Added:${movies.size()}\tTime for batch:${new Date().getTime()-last.getTime()}ms\tTotal time:${new Date().getTime()-begin.getTime()}ms`)
+    console.log(`Batch Nr:${batch}\tMovies Added:${movies.size()}\tTime for batch:${new Date().getTime() - last.getTime()}ms\tTotal time:${new Date().getTime() - begin.getTime()}ms`)
     last = new Date();
     movies.clear()
     actors.clear()
     movieActors.clear()
     movieGenres.clear()
   }
-  const end : Date = new Date()
-  return new Response(`${addedMovies} were added in ${batch} Batches. It took ${end.getTime()-begin.getTime()}ms\n
-  This results in ${(end.getTime()-begin.getTime())/addedMovies}'ms/movie'`, {
+  const end: Date = new Date()
+  return new Response(`${addedMovies} were added in ${batch} Batches. It took ${end.getTime() - begin.getTime()}ms\n
+  This results in ${(end.getTime() - begin.getTime()) / addedMovies}'ms/movie'`, {
     status: 200,
     headers: {
       "content-type": "application/json",
     },
   });
 }
-async function getBatchSizeOfUnknownMovieDataFromDataArray(dataArray: string[], batchSize: number): Promise<MovieData[]> {
+async function getBatchSizeOfUnknownMovieDataFromDataArray(dataArray: string[], batchSize: number, knownMovies: UniqueSet<Movie>): Promise<MovieData[]> {
   const movieData: MovieData[] = [];
   //Hier noch optimieren, wie oft die Filme aus der Datenbank gelesen werden
-  const moviesInDB = await getMoviesInDb()
+  //const moviesInDB = await getMoviesInDb()
+  //logMovies(knownMovies.toArray())
   while (movieData.length < batchSize) {
     const value = dataArray.pop();
     if (value == "") { continue; }
     const jsonObject = JSON.parse(value!);
     const idValue: number = jsonObject.id
-    if (moviesInDB.find(movie => movie.id == idValue)) { continue; }
+    if (knownMovies.hasKey(idValue.toString())) { continue; }
+    //if (knownMovies.hasKey(idValue)) { continue; }
     const data: MovieData = await getMovieData(idValue)
     if (data.id == -1) { continue; }
     movieData.push(data)
@@ -173,14 +226,22 @@ async function getMovieData(movieId: number): Promise<MovieData> {
   if (response.status != 200) { return { id: -1, cast: [], genres: [] } }
   const data = JSON.parse(JSON.stringify(await response.json()));
   const id: number = data.id;
+  let genres: { id: number }[]
+  let cast: { id: number; known_for_department: string }[]
   try {
-    const genres: { id: number }[] = data.genres;
-    const cast: { id: number; known_for_department: string }[] = data.credits.cast;
-    return { id, genres, cast }
+    genres = data.genres;
   } catch (error) {
-    console.log(movieId)
-    throw new Error(error)
+    console.log(`${movieId} has a genre error`)
+    genres = []
   }
+  try {
+    cast = data.credits.cast;
+  }
+  catch (error) {
+    console.log(`${movieId} has a credits error`)
+    cast = []
+  }
+  return { id, genres, cast }
 }
 
 interface MovieData {
@@ -209,31 +270,6 @@ interface MovieGenre {
 interface MovieActor {
   movie_id: number
   actor_id: number
-}
-class UniqueSet<T> {
-  private items: Map<string, T>;
-
-  constructor() {
-      this.items = new Map<string, T>();
-  }
-
-  add(item: T): void {
-      // Assuming T has an 'id' property of type number
-      const key = JSON.stringify(item)
-      if (!this.items.has(key)) {
-          this.items.set(key, item);
-      }
-  }
-
-  toArray(): T[] {
-      return Array.from(this.items.values());
-  }
-  size() : number {
-    return this.items.size;
-  }
-  clear() : void {
-    this.items.clear
-  }
 }
 
 function logMovieActors(movieActors: MovieActor[]) {
