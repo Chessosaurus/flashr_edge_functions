@@ -6,12 +6,13 @@ const tmdbKey = env["_TMDB_API_KEY"];
 const supUrl = env["_SUPABASE_URL"];
 const supKey = env["_SUPABASE_API_KEY"];
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
-const maxNumberOfMoviesToAdd = 1000
+const maxNumberOfMoviesToAdd = 10_000
 let batch = 0
 let addedMovies = 0
-const batchSize = 50;
+const batchSize = 150;
 
 async function initDB(req: Request): Promise<Response> {
+  const begin : Date = new Date()
   const date = "04_16_2024";
   //Die aktuellse Movie.json.gz von tmdb downloaden
   const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
@@ -24,7 +25,7 @@ async function initDB(req: Request): Promise<Response> {
 
   while (maxNumberOfMoviesToAdd > addedMovies) {
     //Gets batchSize elements of MovieData
-    const toProcess: MovieData[] = await getBatchSizeOfUnknownMovieDataFromDataArray(dataArray, batchSize);
+    const toProcess: MovieData[] = await getBatchSizeOfUnknownMovieDataFromDataArray(dataArray, Math.min(batchSize,(maxNumberOfMoviesToAdd-addedMovies)));
     const movies: UniqueSet<Movie> = new UniqueSet<Movie>();
     const actors: UniqueSet<Actor> = new UniqueSet<Actor>();
     const movieActors: UniqueSet<MovieActor> = new UniqueSet<MovieActor>();
@@ -55,7 +56,8 @@ async function initDB(req: Request): Promise<Response> {
     movieActors.clear()
     movieGenres.clear()
   }
-  return new Response(`${addedMovies} were added in ${batch} Batches`, {
+  const end : Date = new Date()
+  return new Response(`${addedMovies} were added in ${batch} Batches. It took ${end.getTime()-begin.getTime()}ms`, {
     status: 200,
     headers: {
       "content-type": "application/json",
