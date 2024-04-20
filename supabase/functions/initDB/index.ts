@@ -9,7 +9,7 @@ const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } })
 const maxNumberOfMoviesToAdd = 1500
 let batch = 0
 let addedMovies = 0
-const batchSize = 150;
+const batchSize = 50;
 
 async function initDB(req: Request): Promise<Response> {
   addedMovies = 0;
@@ -69,6 +69,7 @@ async function initDB(req: Request): Promise<Response> {
 }
 async function getBatchSizeOfUnknownMovieDataFromDataArray(dataArray: string[], batchSize: number): Promise<MovieData[]> {
   const movieData: MovieData[] = [];
+  //Hier noch optimieren, wie oft die Filme aus der Datenbank gelesen werden
   const moviesInDB = await getMoviesInDb()
   while (movieData.length < batchSize) {
     const value = dataArray.pop();
