@@ -152,7 +152,7 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     result.push(movie);
   }
 
-  return new Response(movies, {
+  return new Response(JSON.stringify(result), {
     headers: {
       "content-type": "application/json",
     },
