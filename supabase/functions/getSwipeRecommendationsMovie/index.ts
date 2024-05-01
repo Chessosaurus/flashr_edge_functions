@@ -137,10 +137,16 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   .select("movie_id")
   .eq("user_id", user_id);
 
+  let ratedMovieId:number[] = [];
+
+  if(ratedMovies) {
+    ratedMovieId = ratedMovies.map((movie:any) => movie.movie_id);
+  }
+
   if (movies && movies.results && movies.results.length > 0) {
     movies.results.forEach((movie:any) => {
-      if (ratedMovies && ratedMovies.length > 0) {
-        if (!ratedMovies.includes(movie.id)) {
+      if (ratedMovieId && ratedMovieId.length > 0) {
+        if (!ratedMovieId.includes(movie.id)) {
           resultMovies.push(movie);
         }
       } else {
@@ -152,10 +158,17 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   let result = [];
 
   // Anzahl zurueckgebender Filme beachten
-  for (let i = 0; i < movie_count; i++) {
-    let movie = resultMovies.pop();
-    result.push(movie);
+  if(movie_count < resultMovies.length) {
+    for (let i = 0; i < movie_count; i++) {
+      let movie = resultMovies.pop();
+      result.push(movie);
+    }
+  } else {
+    resultMovies.forEach((movie:any) => {
+      result.push(movie);
+    });
   }
+
 
   return new Response(JSON.stringify(result), {
     headers: {
