@@ -166,3 +166,5 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
     },
   });
 }
+
+Deno.serve(getSwipeRecommendationsTv);
