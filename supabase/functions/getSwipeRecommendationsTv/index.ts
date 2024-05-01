@@ -167,15 +167,7 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
     });
   } 
 
-
-  const resultBody = {
-    tvs,
-    ratedTvs,
-    resultTvs,
-    result
-  }
-
-  return new Response(JSON.stringify(resultBody) , {
+  return new Response(JSON.stringify(result) , {
     headers: {
       "content-type": "application/json",
     },

@@ -28,8 +28,7 @@ async function getTvRecommendation(req: Request): Promise<Response> {
 
   let tvRecommendations:number[] = [];
 
-  user_ids.forEach(user_id => {
-    (async () => {
+  const promises = user_ids.map(async(user_id) => {
       const { data: likedTvs, error: _errorLikedTvs } = await supabase
       .from("TVStatus")
       .select("tv_id")
@@ -41,8 +40,10 @@ async function getTvRecommendation(req: Request): Promise<Response> {
           tvRecommendations.push(tv.tv_id);
         });
       }
-    })();
   });
+
+  await Promise.all(promises)
+
 
   const frequency = tvRecommendations.reduce((acc, tv) => {
     acc[tv] = (acc[tv] || 0) + 1;
