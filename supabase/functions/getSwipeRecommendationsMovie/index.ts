@@ -1,9 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
-import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 
-const env = await load();
-const supUrl = env["_SUPABASE_URL"];
-const supKey = env["_SUPABASE_KEY"];
+//const env = await load();
+//const supUrl = env["_SUPABASE_URL"];
+//const supKey = env["_SUPABASE_KEY"];
+//const tmdbKey = env["_TMDB_KEY"];
+
+const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
@@ -116,7 +121,7 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   const response = await fetch("https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=de-DE&page=1&sort_by=popularity.desc" + actorsString + genresString, {
     headers: {
       Accept: 'application/json',
-      Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3MzM2ZDExMGY1YjRlMDY5NTc1ZDFiNzdiMTMzMmM2YSIsInN1YiI6IjY1ZmQ1OWI2MjI2YzU2MDE2NDZlZGMwOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.81HUBUnUJvJD9qHxOxS7a0hkFumc3AqC6v52b8wWesM',
+      Authorization: 'Bearer ' + tmdbKey,
       Host: 'api.themoviedb.org'
     },
   });

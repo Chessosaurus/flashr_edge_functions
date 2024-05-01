@@ -1,11 +1,17 @@
-import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0"
 import k from "https://esm.sh/v135/utf-8-validate@6.0.3/denonext/utf-8-validate.mjs";
 import * as zlib from 'node:zlib';
-const env = await load();
-const tmdbKey = env["_TMDB_API_KEY"];
-const supUrl = env["_SUPABASE_URL"];
-const supKey = env["_SUPABASE_API_KEY"];
+//const env = await load();
+//const tmdbKey = env["_TMDB_API_KEY"];
+//const supUrl = env["_SUPABASE_URL"];
+//const supKey = env["_SUPABASE_API_KEY"];
+
+
+const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
+
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
 const maxNumberOfMoviesToAdd = 1000
 let batch = 0

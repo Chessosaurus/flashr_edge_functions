@@ -1,9 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
-import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 
-const env = await load();
-const supUrl = env["_SUPABASE_URL"];
-const supKey = env["_SUPABASE_KEY"];
+//const env = await load();
+//const supUrl = env["_SUPABASE_URL"];
+//const supKey = env["_SUPABASE_KEY"];
+
+
+const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+const supKey = Deno.env.get("_SUPABASE_KEY") as string;
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 async function getMovieRecommendation(req: Request): Promise<Response>  {
