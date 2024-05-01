@@ -121,7 +121,7 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   const response = await fetch("https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=de-DE&page=1&sort_by=popularity.desc" + actorsString + genresString, {
     headers: {
       Accept: 'application/json',
-      Authorization: 'Bearer ' + tmdbKey,
+      Authorization: `Bearer ${tmdbKey}`,
       Host: 'api.themoviedb.org'
     },
   });
