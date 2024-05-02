@@ -1,9 +1,14 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
-import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+import {createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
+//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 
-const env = await load();
-const supUrl = env["_SUPABASE_URL"];
-const supKey = env["_SUPABASE_KEY"];
+//const env = await load();
+//const supUrl = env["_SUPABASE_URL"];
+//const supKey = env["_SUPABASE_KEY"];
+//const tmdbKey = env["TMDB_KEY"];
+
+const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
@@ -113,7 +118,7 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
   const response = await fetch("https://api.themoviedb.org/3/discover/tv?include_adult=false&include_null_first_air_dates=false&language=de-DE&page=1&sort_by=popularity.desc" + actorsString + genresString, {
     headers: {
       Accept: 'application/json',
-      Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3MzM2ZDExMGY1YjRlMDY5NTc1ZDFiNzdiMTMzMmM2YSIsInN1YiI6IjY1ZmQ1OWI2MjI2YzU2MDE2NDZlZGMwOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.81HUBUnUJvJD9qHxOxS7a0hkFumc3AqC6v52b8wWesM',
+      Authorization: `Bearer ${tmdbKey}`,
       Host: 'api.themoviedb.org'
     },
   });
@@ -129,10 +134,17 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
   .select("tv_id")
   .eq("user_id", user_id);
 
+
+  let ratedTvId:number[] = [];
+
+  if(ratedTvs) {
+    ratedTvId = ratedTvs.map((tv:any) => tv.tv_id);
+  }
+
   if (tvs && tvs.results && tvs.results.length > 0) {
     tvs.results.forEach((tv:any) => {
-      if (ratedTvs && ratedTvs.length > 0) {
-        if (!ratedTvs.includes(tv.id)) {
+      if (ratedTvId && ratedTvId.length > 0) {
+        if (!ratedTvId.includes(tv.id)) {
           resultTvs.push(tv);
         }
       } else {
@@ -153,12 +165,13 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
     resultTvs.forEach((tv:any) => {
       result.push(tv);
     });
-  }
+  } 
 
-
-  return new Response(JSON.stringify(result), {
+  return new Response(JSON.stringify(result) , {
     headers: {
       "content-type": "application/json",
     },
   });
 }
+
+Deno.serve(getSwipeRecommendationsTv);

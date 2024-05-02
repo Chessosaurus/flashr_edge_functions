@@ -1,6 +1,15 @@
-import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0"
 import * as zlib from 'node:zlib';
+//const env = await load();
+//const tmdbKey = env["_TMDB_API_KEY"];
+//const supUrl = env["_SUPABASE_URL"];
+//const supKey = env["_SUPABASE_API_KEY"];
+
+const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
+
 import * as util from 'util';
 
 const env = await load();
