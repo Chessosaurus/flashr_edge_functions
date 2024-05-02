@@ -10,7 +10,7 @@ const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } })
 const maxNumberOfMoviesToAdd = 1000
 let batch = 0
 let addedMovies = 0
-const batchSize = 100;
+const batchSize = 200;
 
 class UniqueSet<T extends Object> {
   private items: Map<string, T>;
@@ -93,6 +93,7 @@ async function initDB(req: Request): Promise<Response> {
         movieGenres.add({ movie_id: data.id, genre_id: genre.id } as MovieGenre)
       })
     }
+    console.log(moviesInDBLocal.size())
     //Add all the Data into the Database
     await addMoviesToDB(movies.toArray())
     await addActorsToDB(actors.toArray())

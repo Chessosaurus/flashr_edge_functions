@@ -3,6 +3,7 @@
 .idea
 .env
 .resources
+.node_modules
 config.ts
 .vscode
 *.js
