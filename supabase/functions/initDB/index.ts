@@ -1,21 +1,21 @@
-//import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
+import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0"
 import * as zlib from 'node:zlib';
 import * as util from 'util';
-//const env = await load();
-//const tmdbKey = env["_TMDB_API_KEY"];
-//const supUrl = env["_SUPABASE_URL"];
-//const supKey = env["_SUPABASE_API_KEY"];
+const env = await load();
+const tmdbKey = env["_TMDB_API_KEY"];
+const supUrl = env["_SUPABASE_URL"];
+const supKey = env["_SUPABASE_API_KEY"];
 
-const supUrl = Deno.env.get("_SUPABASE_URL") as string;
-const supKey = Deno.env.get("_SUPABASE_KEY") as string;
-const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
+//const supUrl = Deno.env.get("_SUPABASE_URL") as string;
+//const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+//const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
 
 
 
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
 
-const maxNumberOfMoviesToAdd = 100
+const maxNumberOfMoviesToAdd = 1000
 const batchSize = 50;
 
 let batch = 0
@@ -67,8 +67,8 @@ class UniqueSet<T extends Object> {
     return this.toArray().slice(0, 50);
   }
 }
-//Die aktuellse Movie.json.gz von tmdb downloaden
-const date = "05_02_2024";
+//Die aktuellst*e Movie.json.gz von tmdb downloaden
+const date = "05_03_2024"
 const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
 //Die .gz entpacken und die einzelnen Einträge jeweils als String abspeichern
 const buffer = await response.arrayBuffer();
@@ -94,6 +94,7 @@ async function initDB(req: Request): Promise<Response> {
   movieIds = movieIds.filter(function (el) {
     return !moviesAlreadyInDB.hasKey(el.toString());
   });
+
   //Diese Line macht, dass alle Filme geladen werden bumm
   //movieIds = movieIds.splice(0, maxNumberOfMoviesToAdd);
 
@@ -187,15 +188,15 @@ function getMovieFromMovieData(movieData: MovieData): MovieP {
 
   if (gerTranslation) {
     title = gerTranslation.data.title != "" ? gerTranslation.data.title : title
-    overview = gerTranslation.data.overview!= "" ? gerTranslation.data.overview : overview
+    overview = gerTranslation.data.overview != "" ? gerTranslation.data.overview : overview
   } else if (enTranslation) {
-    title = enTranslation.data.title!= "" ? enTranslation.data.title : title
-    overview = enTranslation.data.overview!= "" ? enTranslation.data.overview : overview
+    title = enTranslation.data.title != "" ? enTranslation.data.title : title
+    overview = enTranslation.data.overview != "" ? enTranslation.data.overview : overview
   } else {
     title = movieData.original_title;
   }
 
-  return { id, original_title: movieData.original_title,poster_path, title, overview };
+  return { id, original_title: movieData.original_title, poster_path, rating: movieData.vote_average, title, overview };
 }
 
 function getActorsFromMovieData(movieData: MovieData): ActorP[] {
@@ -203,8 +204,8 @@ function getActorsFromMovieData(movieData: MovieData): ActorP[] {
   movieData.cast.forEach(c => {
     if (c.known_for_department == "Acting") {
       //Check, so that no duplicates may be in the actors list
-      if (!actors.includes({ id: c.id })) {
-        actors.push({ id: c.id })
+      if (!actors.includes({ id: c.id, name: c.name })) {
+        actors.push({ id: c.id, name: c.name })
       }
     }
   })
@@ -228,17 +229,21 @@ async function getMovieData(movieId: number): Promise<MovieData> {
       "Content-Type": "application/json"
     }
   });
-  if (response.status != 200) { return { id: -1, title: "", overview: "", original_title: "",poster_path: "", cast: [], genres: [], translations: [] } }
+  if (response.status != 200) {
+    console.log(`MovieDetail Error on ${movieId}`)
+    return { id: -1, title: "", overview: "", original_title: "", poster_path: "", vote_average: 0, cast: [], genres: [], translations: [] }
+  }
   const data = JSON.parse(JSON.stringify(await response.json()));
   const id: number = data.id;
   const title: string = data.title
   const overview: string = data.overview
   const original_title: string = data?.original_title
-  const poster_path : string = data?.poster_path
+  const poster_path: string = data?.poster_path
+  const vote_average: number = data?.vote_average
   const genres: Genre[] = data?.genres
   const cast: Cast[] = data?.credits?.cast
   const translations: Translation[] = data?.translations?.translations
-  const d: MovieData = { id, title, overview, original_title,poster_path, genres, cast, translations }
+  const d: MovieData = { id, title, overview, original_title, poster_path, vote_average, genres, cast, translations }
   //console.log(util.inspect(data, { showHidden: false, depth: null, colors: true }))
   //console.log("\n-----------------------------------------------------\n")
   //console.log(util.inspect(d, { showHidden: false, depth: null, colors: true }))
@@ -261,6 +266,9 @@ async function fetchDataContinously(movieIds: number[]) {
   for await (const data of fetchDataGenerator(movieIds)) {
     //console.log(new Date().getTime() - lastDate.getTime())
     //lastDate = new Date()
+    if (data.id == -1) {
+      continue;
+    }
     if (data.id == -100) {
       if (movieData.length != 0) {
         await saveBatchToDB(movieData.splice(0, batchSize))
@@ -282,7 +290,7 @@ async function* fetchDataGenerator(movieIds: number[]) {
     yield data
     id++;
   }
-  const val: MovieData = { id: -100, title: "", overview: "", original_title: "",poster_path : "", cast: [], genres: [], translations: [] }
+  const val: MovieData = { id: -100, title: "", overview: "", original_title: "", poster_path: "", vote_average: 0, cast: [], genres: [], translations: [] }
   yield val;
 }
 async function saveBatchToDB(mdata: MovieData[]) {
@@ -316,6 +324,7 @@ interface MovieData {
   overview: string
   original_title: string
   poster_path: string
+  vote_average: number
   genres: Genre[]
   cast: Cast[]
   translations: Translation[]
@@ -326,6 +335,7 @@ interface Genre {
 interface Cast {
   id: number
   known_for_department: string
+  name: string
 }
 interface Translation {
   iso_3166_1: string
@@ -342,11 +352,13 @@ interface MovieP {
   title: string;
   overview: string
   original_title: string
-  poster_path : string
+  poster_path: string
+  rating: number
 }
 
 interface ActorP {
   id: number
+  name: string
 }
 
 interface GenreP {
