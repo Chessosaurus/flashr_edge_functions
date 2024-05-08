@@ -68,7 +68,7 @@ class UniqueSet<T extends Object> {
   }
 }
 //Die aktuellst*e Movie.json.gz von tmdb downloaden
-const date = "05_03_2024"
+const date = "05_07_2024"
 const response = await fetch("http://files.tmdb.org/p/exports/movie_ids_" + date + ".json.gz")
 //Die .gz entpacken und die einzelnen Einträge jeweils als String abspeichern
 const buffer = await response.arrayBuffer();
@@ -271,13 +271,13 @@ async function fetchDataContinously(movieIds: number[]) {
     }
     if (data.id == -100) {
       if (movieData.length != 0) {
-        await saveBatchToDB(movieData.splice(0, batchSize))
+        saveBatchToDB(movieData.splice(0, batchSize))
       }
     } else {
       movieData.push(data)
       i++;
       if (i == batchSize) {
-        await saveBatchToDB(movieData.splice(0, batchSize));
+        saveBatchToDB(movieData.splice(0, batchSize));
         i = 0;
       }
     }
@@ -310,8 +310,8 @@ async function saveBatchToDB(mdata: MovieData[]) {
   })
   await addMoviesToDB(movies.toArray())
   await addActorsToDB(actors.toArray())
-  await addMovieActorsToDB(movieActors.toArray())
-  await addMovieGenresToDB(movieGenres.toArray())
+  addMovieActorsToDB(movieActors.toArray())
+  addMovieGenresToDB(movieGenres.toArray())
   addedMovies += movies.size()
   batch++
   console.log(`Batch Nr:${batch}\tMovies Added:${movies.size()}\tTime for batch:${new Date().getTime() - last.getTime()}ms\tTotal time:${new Date().getTime() - begin.getTime()}ms`)
