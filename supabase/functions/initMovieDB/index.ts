@@ -211,14 +211,16 @@ function getMovieFromMovieData(movieData: MovieData): MovieP {
 
 function getActorsFromMovieData(movieData: MovieData): ActorP[] {
   const actors: ActorP[] = []
-  movieData.cast.forEach(c => {
-    if (c.known_for_department == "Acting") {
-      //Check, so that no duplicates may be in the actors list
-      if (!actors.includes({ id: c.id, name: c.name })) {
-        actors.push({ id: c.id, name: c.name })
+  if(movieData.cast) {
+    movieData.cast.forEach(c => {
+      if (c.known_for_department == "Acting") {
+        //Check, so that no duplicates may be in the actors list
+        if (!actors.includes({ id: c.id, name: c.name })) {
+          actors.push({ id: c.id, name: c.name })
+        }
       }
-    }
-  })
+    })
+  }
   return actors;
 }
 
