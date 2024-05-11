@@ -11,8 +11,6 @@ const supKey = env["_SUPABASE_API_KEY"];
 //const supKey = Deno.env.get("_SUPABASE_KEY") as string;
 //const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
 
-
-
 const supabase = createClient(supUrl, supKey, { db: { schema: 'persistence' } });
 
 const maxNumberOfMoviesToAdd = 1000
@@ -183,8 +181,20 @@ function getMovieFromMovieData(movieData: MovieData): MovieP {
   let overview = movieData.overview;
   const poster_path = movieData.poster_path
 
-  const gerTranslation = movieData.translations.find(translation => translation.iso_3166_1 === "DE");
-  const enTranslation = movieData.translations.find(translation => translation.iso_3166_1 === "US");
+
+  let gerTranslation: Translation | undefined;
+  let enTranslation: Translation | undefined;
+
+  try{
+    gerTranslation = movieData.translations.find(translation => translation.iso_3166_1 === "DE");
+  } catch {
+    console.error('Error german translation not found.');
+  }
+  try{
+    enTranslation = movieData.translations.find(translation => translation.iso_3166_1 === "US");
+  } catch {
+    console.error('Error english translation not found.');
+  }
 
   if (gerTranslation) {
     title = gerTranslation.data.title != "" ? gerTranslation.data.title : title
