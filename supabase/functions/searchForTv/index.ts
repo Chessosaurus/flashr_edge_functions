@@ -13,9 +13,17 @@ async function searchForTv(req: Request): Promise<Response>  {
     },
   });
 
-  const movies = await response.json();
+  const TVs = await response.json();
 
-  return new Response(JSON.stringify(movies), {
+  const checkedTVs = TVs.results;
+
+  checkedTVs.forEach((tv:any) => {
+    if(tv.overview.length === 0){
+      tv.overview = "Diese Serie enthält leider keine deutsche Beschreibung."
+    }
+  });
+
+  return new Response(JSON.stringify(checkedTVs), {
     headers: {
       "content-type": "application/json",
     },
