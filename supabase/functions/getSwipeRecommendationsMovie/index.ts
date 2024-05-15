@@ -2,9 +2,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 //import { load } from "https://deno.land/std@0.223.0/dotenv/mod.ts";
 
 //const env = await load();
+//const tmdbKey = env["_TMDB_API_KEY"];
 //const supUrl = env["_SUPABASE_URL"];
-//const supKey = env["_SUPABASE_KEY"];
-//const tmdbKey = env["_TMDB_KEY"];
+//const supKey = env["_SUPABASE_API_KEY"];
+
 
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
 const supKey = Deno.env.get("_SUPABASE_KEY") as string;
@@ -15,8 +16,6 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   
 
   const {user_id, movie_count} = await req.json()
-
-  let resp = null;
 
   const resultGenres:number[] = [];
   const resultActors:number[] = [];
@@ -155,6 +154,13 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     });
   }
 
+  resultMovies.forEach((movie:any) =>{
+    if(movie.overview.length === 0){
+      //Hier wird eine Meldung gesetzt, falls der Overview leer ist.
+      movie.overview = "Dieser Film enthält leider keine deutsche Beschreibung.";
+    }
+  });
+
   let result = [];
 
   // Anzahl zurueckgebender Filme beachten
@@ -176,5 +182,19 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     },
   });
 }
+
+
+//async function getAlternativeOverview(movieId:number) {
+//  const response = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?language=en-US`, {
+//    headers: {
+//      Accept: 'application/json',
+//      Authorization: `Bearer ${tmdbKey}`,
+//      Host: 'api.themoviedb.org'
+//    },
+//  });
+//
+//  const movie = await response.json();
+//  return movie.overview;
+//}
 
 Deno.serve(getSwipeRecommendationsMovie)

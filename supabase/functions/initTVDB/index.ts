@@ -96,7 +96,7 @@ async function initDB(req: Request): Promise<Response> {
   });
 
   //Diese Line macht, dass alle Serien geladen werden bumm
-  tvIds = tvIds.splice(0, maxNumberOfTVsToAdd);
+  //tvIds = tvIds.splice(0, maxNumberOfTVsToAdd);
 
   await fetchDataContinously(tvIds);
 
@@ -182,8 +182,19 @@ function getTVFromTVData(tvData: TVData): TVP {
   let overview = tvData.overview;
   const poster_path = tvData.poster_path
 
-  const gerTranslation = tvData.translations.find(translation => translation.iso_3166_1 === "DE");
-  const enTranslation = tvData.translations.find(translation => translation.iso_3166_1 === "US");
+  let gerTranslation: Translation | undefined;
+  let enTranslation: Translation | undefined;
+
+  try{
+    gerTranslation = tvData.translations.find(translation => translation.iso_3166_1 === "DE");
+  } catch {
+    console.error('Error german translation not found.');
+  }
+  try{
+    enTranslation = tvData.translations.find(translation => translation.iso_3166_1 === "US");
+  } catch {
+    console.error('Error english translation not found.');
+  }
 
   if (gerTranslation) {
     title = gerTranslation.data.name != "" ? gerTranslation.data.name : title
@@ -200,6 +211,8 @@ function getTVFromTVData(tvData: TVData): TVP {
 
 function getActorsFromTVData(tvData: TVData): ActorP[] {
   const actors: ActorP[] = []
+
+  if(tvData.cast) {
   tvData.cast.forEach(c => {
     if (c.known_for_department == "Acting") {
       //Check, so that no duplicates may be in the actors list
@@ -208,14 +221,17 @@ function getActorsFromTVData(tvData: TVData): ActorP[] {
       }
     }
   })
+}
   return actors;
 }
 
 function getGenresFromTVData(tvData: TVData): GenreP[] {
   const genres: GenreP[] = []
-  tvData.genres.forEach(g => {
-    genres.push({ id: g.id })
-  })
+  if(tvData.genres) {
+    tvData.genres.forEach(g => {
+      genres.push({ id: g.id })
+    })
+  }
   return genres
 }
 

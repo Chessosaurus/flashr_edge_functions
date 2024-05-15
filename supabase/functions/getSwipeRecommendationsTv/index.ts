@@ -153,6 +153,13 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
     });
   }
 
+  resultTvs.forEach((tv:any) =>{
+    if(tv.overview.length === 0){
+      //Hier wird eine Meldung gesetzt, falls der Overview leer ist.
+      tv.overview = "Diese Serie enthält leider keine deutsche Beschreibung.";
+    }
+  });
+
   let result = [];
 
   // Anzahl zurueckgebender Filme beachten
