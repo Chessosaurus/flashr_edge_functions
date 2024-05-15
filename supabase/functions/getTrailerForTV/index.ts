@@ -10,18 +10,18 @@ const supUrl = Deno.env.get("_SUPABASE_URL") as string;
 const supKey = Deno.env.get("_SUPABASE_KEY") as string;
 const supabase = createClient(supUrl, supKey);
 
-async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
+async function getTrailerForTV(req: Request): Promise<Response>  {
   
-  const {tmdb_id} = await req.json()
+  const {tv_id} = await req.json()
 
-  let trailer = await getTrailer(tmdb_id, "de")
+  let trailer = await getTrailer(tv_id, "de")
 
   if(trailer === null) {
-    trailer = await getTrailer(tmdb_id, "en")
+    trailer = await getTrailer(tv_id, "en")
   }
 
   if(trailer === null) {
-    trailer = "Für diese Produktion ist leider kein Trailer vorhanden."
+    trailer = "Für diese Serie ist leider kein Trailer vorhanden."
   }
 
 
@@ -33,9 +33,9 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   });
 }
 
-async function getTrailer(tmdb_id:number, language:string) {
+async function getTrailer(tv_id:number, language:string) {
 
-  const response = await fetch(`https://api.kinocheck.de/movies?tmdb_id=${tmdb_id}&language=${language}&categories=Trailer`);
+  const response = await fetch(`https://api.kinocheck.de/shows?tmdb_id=${tv_id}&language=${language}&categories=Trailer`);
 
   const trailerObject = await response.json();
 
@@ -47,4 +47,4 @@ async function getTrailer(tmdb_id:number, language:string) {
 
 }
 
-Deno.serve(getSwipeRecommendationsMovie)
+Deno.serve(getTrailerForTV)
