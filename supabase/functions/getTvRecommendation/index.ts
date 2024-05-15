@@ -57,12 +57,20 @@ async function getTvRecommendation(req: Request): Promise<Response> {
   const resultList = sortedArray.map(entry => entry[0]);
 
   if (index < resultList.length) {
-    result = resultList[index];
+    if (index < resultList.length) {
+      //result = resultList[index];
+      const { data: likedTvs, error: _errorLikedMovies } = await supabase
+      .from("TV")
+      .select("*")
+      .eq("id", resultList[index]);
+  
+      result = likedTvs;
+    }
   }
   
   // result zurückgeben
 
-  return new Response(result, {
+  return new Response(JSON.stringify(result), {
     headers: {
       "content-type": "application/json",
     },

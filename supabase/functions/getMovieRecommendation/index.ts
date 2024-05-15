@@ -58,7 +58,13 @@ async function getMovieRecommendation(req: Request): Promise<Response>  {
   const resultList = sortedArray.map(entry => entry[0]);
 
   if (index < resultList.length) {
-    result = resultList[index];
+    //result = resultList[index];
+    const { data: likedMovies, error: _errorLikedMovies } = await supabase
+    .from("Movie")
+    .select("*")
+    .eq("id", resultList[index]);
+
+    result = likedMovies;
   }
   
   // result zurückgeben
