@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
 const supKey = Deno.env.get("_SUPABASE_KEY") as string;
 const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
-const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
+const supabase = createClient(supUrl, supKey);
 
 async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   
@@ -23,9 +23,17 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     },
   });
 
-  const movies = await response.json();
+  const TVs = await response.json();
 
-  return new Response(JSON.stringify(movies), {
+  const checkedTVs = TVs.results;
+
+  checkedTVs.forEach((tv:any) => {
+    if(tv.overview.length === 0){
+      tv.overview = "Diese Serie enthält leider keine deutsche Beschreibung."
+    }
+  });
+
+  return new Response(JSON.stringify(checkedTVs), {
     headers: {
       "content-type": "application/json",
     },

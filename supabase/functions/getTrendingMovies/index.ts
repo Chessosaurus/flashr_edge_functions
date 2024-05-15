@@ -25,7 +25,15 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
 
   const movies = await response.json();
 
-  return new Response(JSON.stringify(movies), {
+  const checkedMovies = movies.results;
+
+  checkedMovies.forEach((movie:any) => {
+    if(movie.overview.length === 0){
+      movie.overview = "Dieser Film enthält leider keine deutsche Beschreibung."
+    }
+  });
+
+  return new Response(JSON.stringify(checkedMovies), {
     headers: {
       "content-type": "application/json",
     },
