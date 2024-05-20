@@ -1,4 +1,4 @@
-const tmdbKey = Deno.env.get("_TMDB_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_API_KEY") as string;
 
 async function searchForMovie(req: Request): Promise<Response>  {
   
