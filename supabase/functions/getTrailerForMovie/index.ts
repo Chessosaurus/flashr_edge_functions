@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 //const tmdbKey = env["_TMDB_KEY"];
 
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
-const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const supKey = Deno.env.get("_SUPABASE_API_KEY") as string;
 const supabase = createClient(supUrl, supKey);
 
 async function getTrailerForMovie(req: Request): Promise<Response>  {

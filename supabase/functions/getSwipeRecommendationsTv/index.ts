@@ -7,7 +7,7 @@ import {createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 //const tmdbKey = env["TMDB_KEY"];
 
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
-const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const supKey = Deno.env.get("_SUPABASE_API_KEY") as string;
 const tmdbKey = Deno.env.get("_TMDB_API_KEY") as string;
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
@@ -19,6 +19,8 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
 
   const resultGenres:number[] = [];
   const resultActors:number[] = [];
+
+  let test;
 
   // Liked TVs
 
@@ -46,21 +48,21 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
   // Genres der Liked TVs
 
   if (likedTvs && likedTvs.length > 0) {
-    likedTvs.forEach(tv_id => {
-      (async () => {
-        const { data: genresFromLikedTv, error: _errorGenresFromLikedTv } = await supabase
+    const promises = likedTvs.map(async (item) => {
+      const { data: genresFromLikedTv, error: _errorGenresFromLikedTv } = await supabase
         .from("TVGenre")
         .select("genre_id")
-        .eq("tv_id", tv_id);
-
-        if (genresFromLikedTv && genresFromLikedTv.length > 0) {
-          const tvGenresAsNumberArray : number[] = genresFromLikedTv.map(item => item.genre_id);
-          tvGenresAsNumberArray.forEach(item => {
-            resultGenres.push(item);
-          });
-        }
-      })();
+        .eq("tv_id", item.tv_id);
+  
+      if (genresFromLikedTv && genresFromLikedTv.length > 0) {
+        const tvGenresAsNumberArray = genresFromLikedTv.map(item => item.genre_id);
+        tvGenresAsNumberArray.forEach(item => {
+          resultGenres.push(item);
+        });
+      }
     });
+  
+    await Promise.all(promises);
   }
 
   let genresString = "";
@@ -72,7 +74,6 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
   }
 
   // Liked Actors
-
   const { data: likedActors, error: _errorLikedActors } = await supabase
   .from("ActorStatus")
   .select("actor_id")
@@ -81,30 +82,30 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
 
   if (likedActors && likedActors.length > 0) {
     const likedActorsAsNumberArray : number[] = likedActors.map(item => item.actor_id);
-    
     likedActorsAsNumberArray.forEach(item => {
       resultActors.push(item);
     });
   }
 
   // Actors der Liked TVs
-
   if (likedTvs && likedTvs.length > 0) {
-    likedTvs.forEach(tv_id => {
-      (async () => {
-        const { data: actorsFromLikedTv, error: _errorActorsFromLikedTv } = await supabase
+    const promises = likedTvs.map(async (item) => {
+      const { data: actorsFromLikedTv, error: _errorActorsFromLikedTv } = await supabase
         .from("TVActor")
         .select("actor_id")
-        .eq("tv_id", tv_id);
+        .eq("tv_id", item.tv_id);
+      
+      test = actorsFromLikedTv;
 
-        if (actorsFromLikedTv && actorsFromLikedTv.length > 0) {
-          const tvActorsAsNumberArray : number[] = actorsFromLikedTv.map(item => item.actor_id);
-          tvActorsAsNumberArray.forEach(item => {
-            resultActors.push(item);
-          });
-        }
-      })();
+      if (actorsFromLikedTv && actorsFromLikedTv.length > 0) {
+        const tvActorsAsNumberArray = actorsFromLikedTv.map(item => item.actor_id);
+        tvActorsAsNumberArray.forEach(item => {
+          resultActors.push(item);
+        });
+      }
     });
+  
+    await Promise.all(promises);
   }
 
   let actorsString = "";

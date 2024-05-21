@@ -8,7 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 
 
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
-const supKey = Deno.env.get("_SUPABASE_KEY") as string;
+const supKey = Deno.env.get("_SUPABASE_API_KEY") as string;
 const tmdbKey = Deno.env.get("_TMDB_API_KEY") as string;
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
@@ -46,21 +46,21 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   // Genres der Liked Movies
 
   if (likedMovies && likedMovies.length > 0) {
-    likedMovies.forEach(movie_id => {
-      (async () => {
-        const { data: genresFromLikedMovie, error: _errorGenresFromLikedMovie } = await supabase
+    const promises = likedMovies.map(async (item) => {
+      const { data: genresFromLikedMovie, error: _errorGenresFromLikedMovie } = await supabase
         .from("MovieGenre")
         .select("genre_id")
-        .eq("movie_id", movie_id);
-
-        if (genresFromLikedMovie && genresFromLikedMovie.length > 0) {
-          const movieGenresAsNumberArray : number[] = genresFromLikedMovie.map(item => item.genre_id);
-          movieGenresAsNumberArray.forEach(item => {
-            resultGenres.push(item);
-          });
-        }
-      })();
+        .eq("movie_id", item.movie_id);
+  
+      if (genresFromLikedMovie && genresFromLikedMovie.length > 0) {
+        const movieGenresAsNumberArray = genresFromLikedMovie.map(item => item.genre_id);
+        movieGenresAsNumberArray.forEach(item => {
+          resultGenres.push(item);
+        });
+      }
     });
+  
+    await Promise.all(promises);
   }
 
   let genresString = "";
@@ -90,22 +90,23 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   // Actors der Liked Movies
 
   if (likedMovies && likedMovies.length > 0) {
-    likedMovies.forEach(movie_id => {
-      (async () => {
-        const { data: actorsFromLikedMovie, error: _errorActorsFromLikedMovie } = await supabase
+    const promises = likedMovies.map(async (item) => {
+      const { data: actorsFromLikedMovie, error: _errorActorsFromLikedMovie } = await supabase
         .from("MovieActor")
         .select("actor_id")
-        .eq("movie_id", movie_id);
-
-        if (actorsFromLikedMovie && actorsFromLikedMovie.length > 0) {
-          const movieActorsAsNumberArray : number[] = actorsFromLikedMovie.map(item => item.actor_id);
-          movieActorsAsNumberArray.forEach(item => {
-            resultActors.push(item);
-          });
-        }
-      })();
+        .eq("movie_id", item.movie_id);
+  
+      if (actorsFromLikedMovie && actorsFromLikedMovie.length > 0) {
+        const movieActorsAsNumberArray = actorsFromLikedMovie.map(item => item.actor_id);
+        movieActorsAsNumberArray.forEach(item => {
+          resultActors.push(item);
+        });
+      }
     });
+  
+    await Promise.all(promises);
   }
+  
 
   let actorsString = "";
   if (resultActors.length > 0) {
