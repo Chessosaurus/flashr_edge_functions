@@ -33,6 +33,21 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     }
   });
 
+  const promises = checkedTVs.map(async (item:any) => {
+    const watchProviderInfo = await fetch(`https://api.themoviedb.org/3/tv/${item.id}/watch/providers`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tmdbKey}`,
+        Host: 'api.themoviedb.org'
+      },
+    })
+
+    const watchProviderData = await watchProviderInfo.json();
+    item.watch_providers = watchProviderData.results.DE;
+    
+  });
+  await Promise.all(promises);
+
   return new Response(JSON.stringify(checkedTVs), {
     headers: {
       "content-type": "application/json",
