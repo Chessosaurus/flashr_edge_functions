@@ -23,6 +23,21 @@ async function searchForMovie(req: Request): Promise<Response>  {
     }
   });
 
+  const promises = checkedMovies.map(async (item:any) => {
+    const watchProviderInfo = await fetch(`https://api.themoviedb.org/3/movie/${item.id}/watch/providers`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tmdbKey}`,
+        Host: 'api.themoviedb.org'
+      },
+    })
+
+    const watchProviderData = await watchProviderInfo.json();
+    item.watch_providers = watchProviderData.results.DE;
+    
+  });
+  await Promise.all(promises);
+
   return new Response(JSON.stringify(checkedMovies), {
     headers: {
       "content-type": "application/json",
