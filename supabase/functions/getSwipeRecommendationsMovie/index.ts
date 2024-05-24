@@ -176,6 +176,21 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     });
   }
 
+  const promises = result.map(async (item) => {
+    const watchProviderInfo = await fetch(`https://api.themoviedb.org/3/movie/${item.id}/watch/providers`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tmdbKey}`,
+        Host: 'api.themoviedb.org'
+      },
+    })
+
+    const watchProviderData = await watchProviderInfo.json();
+    item.watch_providers = watchProviderData.results.DE;
+    
+  });
+  await Promise.all(promises);
+
 
   return new Response(JSON.stringify(result), {
     headers: {
@@ -184,18 +199,5 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   });
 }
 
-
-//async function getAlternativeOverview(movieId:number) {
-//  const response = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?language=en-US`, {
-//    headers: {
-//      Accept: 'application/json',
-//      Authorization: `Bearer ${tmdbKey}`,
-//      Host: 'api.themoviedb.org'
-//    },
-//  });
-//
-//  const movie = await response.json();
-//  return movie.overview;
-//}
 
 Deno.serve(getSwipeRecommendationsMovie)
