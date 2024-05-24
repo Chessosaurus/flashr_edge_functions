@@ -8,17 +8,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.0";
 
 const supUrl = Deno.env.get("_SUPABASE_URL") as string;
 const supKey = Deno.env.get("_SUPABASE_API_KEY") as string;
+const tmdbKey = Deno.env.get("_TMDB_API_KEY") as string;
+
 const supabase = createClient(supUrl, supKey, {db: { schema: 'persistence' }});
 
 async function getMovieRecommendation(req: Request): Promise<Response>  {
   
-  const { user_ids, index }: { user_ids: number[], index: number } = await req.json();
+  const { user_ids }: { user_ids: number[] } = await req.json();
   
-  let resp = null;
-
   const responeBody = {
     message: 'Request has failed!',
-    resp
   }
   if (!user_ids) {
     return new Response(
@@ -54,21 +53,36 @@ async function getMovieRecommendation(req: Request): Promise<Response>  {
   const sortedArray = Object.entries(frequency);
   sortedArray.sort((a, b) => b[1] - a[1]);
 
-  let result = null;
+  const result:any[]=[];
   const resultList = sortedArray.map(entry => entry[0]);
 
-  if (index < resultList.length) {
-    //result = resultList[index];
+  const promisesDB = resultList.map(async (item) => {
     const { data: likedMovies, error: _errorLikedMovies } = await supabase
     .from("Movie")
     .select("*")
-    .eq("id", resultList[index]);
+    .eq("id", item);
+    result.push(likedMovies![0]);
 
-    result = likedMovies;
-  }
+  });
+
+  await Promise.all(promisesDB);
+
+  const promisesProvider = result.map(async (item:any) => {
+    const watchProviderInfo = await fetch(`https://api.themoviedb.org/3/movie/${item.id}/watch/providers`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tmdbKey}`,
+        Host: 'api.themoviedb.org'
+      },
+    })
+
+    const watchProviderData = await watchProviderInfo.json();
+    item.watch_providers = watchProviderData.results.DE;
+    
+  });
+  await Promise.all(promisesProvider);
   
   // result zurückgeben
-
   return new Response(JSON.stringify(result), {
     headers: {
       "content-type": "application/json",
