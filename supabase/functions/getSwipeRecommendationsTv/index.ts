@@ -116,43 +116,8 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
     });
   }
 
-  const response = await fetch("https://api.themoviedb.org/3/discover/tv?include_adult=false&include_null_first_air_dates=false&language=de-DE&page=1&sort_by=popularity.desc" + actorsString + genresString, {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${tmdbKey}`,
-      Host: 'api.themoviedb.org'
-    },
-  });
 
-  // Ueberpruefung, ob zu diesen TVs und User jeweils ein TVStatus existiert
-
-  const tvs = await response.json();
-
-  const resultTvs:any[] = [];
-
-  const { data: ratedTvs, error: _errorRatedTvs } = await supabase
-  .from("TVStatus")
-  .select("tv_id")
-  .eq("user_id", user_id);
-
-
-  let ratedTvId:number[] = [];
-
-  if(ratedTvs) {
-    ratedTvId = ratedTvs.map((tv:any) => tv.tv_id);
-  }
-
-  if (tvs && tvs.results && tvs.results.length > 0) {
-    tvs.results.forEach((tv:any) => {
-      if (ratedTvId && ratedTvId.length > 0) {
-        if (!ratedTvId.includes(tv.id)) {
-          resultTvs.push(tv);
-        }
-      } else {
-        resultTvs.push(tv);
-      }
-    });
-  }
+  const resultTvs = await fetchTVShows(user_id, tv_count, 1, actorsString, genresString);
 
   resultTvs.forEach((tv:any) =>{
     if(tv.overview.length === 0){
@@ -195,6 +160,66 @@ async function getSwipeRecommendationsTv(req: Request): Promise<Response> {
       "content-type": "application/json",
     },
   });
+}
+
+
+async function fetchTVShows(
+  user_id: number,
+  tv_count: number,
+  page: number,
+  actorsString: string,
+  genresString: string,
+): Promise<any[]> {
+  const fetchTVShowsFromTMDB = async (page: number): Promise<any> => {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/discover/tv?include_adult=false&include_null_first_air_dates=false&language=de-DE&page=${page}&sort_by=popularity.desc${actorsString}${genresString}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${tmdbKey}`,
+          Host: 'api.themoviedb.org',
+        },
+      }
+    );
+    return await response.json();
+  };
+
+  const getRatedTVShows = async (user_id: number): Promise<number[]> => {
+    const { data: ratedTvs, error: _errorRatedTvs } = await supabase
+      .from("TVStatus")
+      .select("tv_id")
+      .eq("user_id", user_id);
+
+    return ratedTvs ? ratedTvs.map((tv: any) => tv.tv_id) : [];
+  };
+
+  const filterTVShows = (tvs: any[], ratedTvId: number[]): any[] => {
+    return tvs.filter((tv: any) => !ratedTvId.includes(tv.id));
+  };
+
+  const ratedTvId = await getRatedTVShows(user_id);
+  let resultTvs: any[] = [];
+  let currentPage = page;
+
+  while (resultTvs.length < tv_count) {
+    const tvs = await fetchTVShowsFromTMDB(currentPage);
+
+    if (tvs && tvs.results && tvs.results.length > 0) {
+      const filteredTvs = filterTVShows(tvs.results, ratedTvId);
+      resultTvs = [...resultTvs, ...filteredTvs];
+    } else {
+      break; // Break the loop if no more TV shows are available
+    }
+
+    if (resultTvs.length >= tv_count) {
+      resultTvs = resultTvs.slice(0, tv_count); // Ensure we return exactly tv_count TV shows
+      break;
+    }
+
+    currentPage++;
+  }
+
+  return resultTvs;
 }
 
 Deno.serve(getSwipeRecommendationsTv);

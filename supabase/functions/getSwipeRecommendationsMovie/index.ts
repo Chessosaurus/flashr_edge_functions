@@ -116,44 +116,7 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
     });
   }
 
-  // Movies mit den Eigenschaften
-
-  const response = await fetch("https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=de-DE&page=1&sort_by=popularity.desc" + actorsString + genresString, {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${tmdbKey}`,
-      Host: 'api.themoviedb.org'
-    },
-  });
-
-  // Ueberpruefung, ob zu diesen Movies und User jeweils ein MovieStatus existiert
-
-  const movies = await response.json();
-
-  const resultMovies:any[] = [];
-
-  const { data: ratedMovies, error: _errorRatedMovies } = await supabase
-  .from("MovieStatus")
-  .select("movie_id")
-  .eq("user_id", user_id);
-
-  let ratedMovieId:number[] = [];
-
-  if(ratedMovies) {
-    ratedMovieId = ratedMovies.map((movie:any) => movie.movie_id);
-  }
-
-  if (movies && movies.results && movies.results.length > 0) {
-    movies.results.forEach((movie:any) => {
-      if (ratedMovieId && ratedMovieId.length > 0) {
-        if (!ratedMovieId.includes(movie.id)) {
-          resultMovies.push(movie);
-        }
-      } else {
-        resultMovies.push(movie);
-      }
-    });
-  }
+  const resultMovies:any[] = await fetchMovies(user_id, movie_count, 1, actorsString, genresString );
 
   resultMovies.forEach((movie:any) =>{
     if(movie.overview.length === 0){
@@ -192,12 +155,71 @@ async function getSwipeRecommendationsMovie(req: Request): Promise<Response>  {
   await Promise.all(promises);
 
 
-  return new Response(JSON.stringify(result), {
+  return new Response(JSON.stringify(resultMovies), {
     headers: {
       "content-type": "application/json",
     },
   });
 }
 
+
+async function fetchMovies(
+  user_id: number,
+  movie_count: number,
+  page: number,
+  actorsString: string,
+  genresString: string,
+): Promise<any[]> {
+  const fetchMoviesFromTMDB = async (page: number): Promise<any> => {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=de-DE&page=${page}&sort_by=popularity.desc${actorsString}${genresString}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${tmdbKey}`,
+          Host: 'api.themoviedb.org',
+        },
+      }
+    );
+    return await response.json();
+  };
+
+  const getRatedMovies = async (user_id: number): Promise<number[]> => {
+    const { data: ratedMovies, error: _errorRatedMovies } = await supabase
+      .from("MovieStatus")
+      .select("movie_id")
+      .eq("user_id", user_id);
+
+    return ratedMovies ? ratedMovies.map((movie: any) => movie.movie_id) : [];
+  };
+
+  const filterMovies = (movies: any[], ratedMovieId: number[]): any[] => {
+    return movies.filter((movie: any) => !ratedMovieId.includes(movie.id));
+  };
+
+  const ratedMovieId = await getRatedMovies(user_id);
+  let resultMovies: any[] = [];
+  let currentPage = page;
+
+  while (resultMovies.length < movie_count) {
+    const movies = await fetchMoviesFromTMDB(currentPage);
+
+    if (movies && movies.results && movies.results.length > 0) {
+      const filteredMovies = filterMovies(movies.results, ratedMovieId);
+      resultMovies = [...resultMovies, ...filteredMovies];
+    } else {
+      break; // Break the loop if no more movies are available
+    }
+
+    if (resultMovies.length >= movie_count) {
+      resultMovies = resultMovies.slice(0, movie_count); // Ensure we return exactly movie_count movies
+      break;
+    }
+
+    currentPage++;
+  }
+
+  return resultMovies;
+}
 
 Deno.serve(getSwipeRecommendationsMovie)
